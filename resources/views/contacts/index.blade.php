@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200 gap-6 flex" style="height: 75vh;">
-                    <div class="">
+                    <div class="w-2/6">
                         <!-- Formulário de pesquisa -->
                         <form method="GET" action="{{ route('contacts.index') }}">
                             <div class="flex items-center gap-2">
@@ -17,7 +17,7 @@
                                     class="form-input rounded-md shadow-sm block w-full"
                                     value="{{ request('search') }}">
                                 <button type="submit"
-                                    class="ml-4 inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
+                                    class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                         stroke-width="1.5" stroke="currentColor" class="size-6">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -25,20 +25,20 @@
                                     </svg>
 
                                 </button>
-                                <button type="submit"
-                                    class="ml-4 inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
+                                <a href="{{ route('contacts.index') }}"
+                                    class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                         stroke-width="1.5" stroke="currentColor" class="size-6">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                     </svg>
 
-                                </button>
+                                </a>
                             </div>
                         </form>
 
                         <!-- Tabela de contatos -->
                         <div class="mt-6">
-                            <table class="divide-y divide-gray-200">
+                            <table class="w-full divide-y divide-gray-200">
                                 <thead>
                                     <tr>
                                         <th scope="col"
@@ -69,7 +69,7 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach ($contacts as $contact)
-                                        <tr>
+                                        <tr class="hover:bg-gray-100 cursor-pointer">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 {{ $contact->nome }}
                                             </td>
@@ -81,7 +81,7 @@
                                                     class="text-gray-600 hover:text-gray-900"><svg
                                                         xmlns="http://www.w3.org/2000/svg" fill="none"
                                                         viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                                                        class="size-6">
+                                                        class="size-4">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
                                                             d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                                                     </svg>
@@ -114,24 +114,34 @@
             var contacts = @json($contacts);
 
             let map;
-
             async function initMap() {
                 const {
                     Map
                 } = await google.maps.importLibrary("maps");
 
-                // Obter o último contato inserido
-                var lastContact = contacts.data[contacts.data.length - 1];
+                // Obter as coordenadas padrão
+                let defaultLat = -23.5505;
+                let defaultLng = -46.6333;
+
+                // Verificar se há contatos disponíveis
+                if (contacts.data.length > 0) {
+                    // Obter o último contato inserido
+                    var lastContact = contacts.data[contacts.data.length - 1];
+                    defaultLat = lastContact.latitude ? parseFloat(lastContact.latitude) : defaultLat;
+                    defaultLng = lastContact.longitude ? parseFloat(lastContact.longitude) : defaultLng;
+                }
 
                 map = new Map(document.getElementById("map"), {
                     center: {
-                        lat: parseFloat(lastContact.latitude),
-                        lng: parseFloat(lastContact.longitude)
+                        lat: defaultLat,
+                        lng: defaultLng
                     },
                     zoom: 8,
                 });
 
-                contacts.data.forEach(function(contact) {
+                var markers = [];
+
+                contacts.data.forEach(function(contact, index) {
                     var marker = new google.maps.Marker({
                         position: {
                             lat: parseFloat(contact.latitude),
@@ -140,6 +150,7 @@
                         map: map,
                         title: contact.nome
                     });
+                    markers.push(marker);
 
                     var infoWindow = new google.maps.InfoWindow({
                         content: '<div><strong>' + contact.nome + '</strong><br>' + contact.endereco +
@@ -148,6 +159,14 @@
 
                     marker.addListener('click', function() {
                         infoWindow.open(map, marker);
+                    });
+
+                    // Adicionar o evento de clique à linha da tabela
+                    var contactRow = document.querySelectorAll('tbody tr')[index];
+                    contactRow.addEventListener('click', function() {
+                        // Focar o mapa no marcador correspondente
+                        map.panTo(marker.getPosition());
+                        map.setZoom(15);
                     });
                 });
             }
